@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Paper Crawler: an animated spider that crawls across an arXiv paper while Claude explains it.">
+  <title>Paper Crawler</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23101014'/%3E%3Cg stroke='%2319c3d6' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M13 16 4 10M13 17 3 17M13 18 4 24M14 19l-6 7M19 16l9-6M19 17l10 0M19 18l9 6M18 19l6 7'/%3E%3C/g%3E%3Cellipse cx='16' cy='17' rx='5.2' ry='4' fill='%23090b0e'/%3E%3Ccircle cx='16' cy='12.5' r='2.6' fill='%23090b0e'/%3E%3Ccircle cx='17' cy='12' r='.7' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ==================== top bar ==================== -->
+  <header id="topbar">
+    <div class="brand" aria-label="Paper Crawler">
+      <span class="brand-spider" aria-hidden="true">
+        <svg viewBox="0 0 40 28" width="30" height="21" focusable="false">
+          <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+            <path d="M17 13 C9 8, 7 3, 3 1"/><path d="M17 15 C8 14, 5 12, 1 12"/>
+            <path d="M17 17 C8 19, 5 22, 2 25"/><path d="M18 18 C11 23, 11 26, 9 28"/>
+            <path d="M23 13 C31 8, 33 3, 37 1"/><path d="M23 15 C32 14, 35 12, 39 12"/>
+            <path d="M23 17 C32 19, 35 22, 38 25"/><path d="M22 18 C29 23, 29 26, 31 28"/>
+          </g>
+          <ellipse cx="20" cy="16" rx="8" ry="6" fill="currentColor"/>
+          <circle cx="20" cy="10.5" r="3.2" fill="currentColor"/>
+          <circle cx="21.2" cy="9.6" r="0.8" fill="#fff"/>
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <strong>Paper Crawler</strong>
+        <small>a spider that reads ML papers</small>
+      </span>
+    </div>
+
+    <div class="top-actions">
+      <label class="select-wrap" for="paper-select">
+        <span>paper</span>
+        <select id="paper-select" aria-label="Choose a downloaded paper">
+          <option>loading…</option>
+        </select>
+      </label>
+      <button id="export-btn" class="btn" type="button" title="Download a Markdown paper breakdown">
+        Export notes
+      </button>
+      <button id="panel-toggle" class="btn btn-icon" type="button" title="Show/hide the explainer" aria-expanded="true">
+        ◧
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== the paper ==================== -->
+  <main id="stage">
+    <article id="paper" aria-label="Research paper">
+      <header id="paper-meta">
+        <p class="kicker">
+          <span id="meta-category">arXiv</span>
+          <span class="dot">·</span>
+          <a id="meta-arxiv-link" href="https://arxiv.org" target="_blank" rel="noopener">arXiv</a>
+          <span class="dot">·</span>
+          <span id="meta-date"></span>
+        </p>
+        <h1 id="meta-title">Paper Crawler</h1>
+        <p id="meta-authors"></p>
+      </header>
+
+      <div id="paper-content">
+        <div class="paper-empty">
+          <p class="paper-empty-kicker">No paper loaded yet.</p>
+          <p>Download one with:</p>
+          <pre><code>python fetch_paper.py 1706.03762</code></pre>
+          <p>then reload this page.</p>
+        </div>
+      </div>
+
+      <div id="paper-end" aria-hidden="true"></div>
+    </article>
+  </main>
+
+  <!-- ==================== AI explainer panel ==================== -->
+  <aside id="analyst-panel" aria-label="Claude paper explainer">
+    <header class="panel-head">
+      <div class="panel-kicker">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span aria-hidden="true">▸</span>
+        <span>crawling:</span>
+        <span id="crawl-section">waiting for paper</span>
+      </div>
+      <div class="panel-brand-row">
+        <h2>Claude reads along</h2>
+        <span id="ai-status" class="badge">checking…</span>
+      </div>
+      <div class="level-row" role="group" aria-label="Explanation level">
+        <span class="level-label">level</span>
+        <button class="level-btn" data-level="beginner" type="button" title="CS freshman (B)">beginner</button>
+        <button class="level-btn is-active" data-level="student" type="button" title="CS student who knows basic ML (S)">student</button>
+        <button class="level-btn" data-level="researcher" type="button" title="ML researcher (R)">researcher</button>
+      </div>
+    </header>
+
+    <nav class="panel-tabs" role="tablist" aria-label="Panel views">
+      <button class="tab-btn is-active" data-tab="explain" role="tab" aria-selected="true" type="button">
+        explanations
+      </button>
+      <button class="tab-btn" data-tab="notes" role="tab" aria-selected="false" type="button">
+        crawler notes <span id="notes-count" class="tab-count">0</span>
+      </button>
+    </nav>
+
+    <section id="tab-explain" class="tab-pane is-active" role="tabpanel">
+      <div id="explain-current" class="explain-current">
+        <div class="explain-placeholder">
+          <span class="blink">▸</span> Waiting for the spider to reach the abstract…
+        </div>
+      </div>
+      <div class="history-head">
+        <span>history</span>
+        <button id="clear-history" class="link-btn" type="button">clear</button>
+      </div>
+      <ol id="explain-history" class="explain-history"></ol>
+    </section>
+
+    <section id="tab-notes" class="tab-pane" role="tabpanel" hidden>
+      <div class="notes-head">
+        <p>Metrics, models and datasets the spider touched.</p>
+        <button id="export-notes" class="link-btn" type="button">export JSON</button>
+      </div>
+      <ol id="notes-list" class="notes-list">
+        <li class="notes-empty">No notes yet. Let the spider crawl.</li>
+      </ol>
+    </section>
+
+    <footer class="panel-foot">
+      <span><kbd>E</kbd> explain selection</span>
+      <span><kbd>B</kbd><kbd>S</kbd><kbd>R</kbd> level</span>
+      <span><kbd>C</kbd> clear ink</span>
+    </footer>
+  </aside>
+
+  <!-- ==================== overlays ==================== -->
+  <canvas id="spider-canvas" aria-hidden="true"></canvas>
+
+  <div id="title-overlay" class="title-overlay" aria-hidden="true">
+    <div class="title-overlay-inner">
+      <span id="title-overlay-text">I built a spider that reads ML papers for me</span>
+    </div>
+  </div>
+
+  <div id="controls-hud" aria-label="Keyboard shortcuts">
+    <div class="hud-row">
+      <span class="hud-state" id="hud-state">normal</span>
+      <span class="hud-level" id="hud-level">student</span>
+      <button id="hud-follow" type="button" title="Toggle camera follow (F)">follow: on</button>
+      <button id="hud-pause" type="button" title="Pause / resume (Space)">pause</button>
+    </div>
+    <details>
+      <summary>controls</summary>
+      <div class="hud-keys">
+        <span><kbd>move</kbd> chase cursor</span>
+        <span><kbd>click</kbd> send spider</span>
+        <span><kbd>Space</kbd> pause</span>
+        <span><kbd>F</kbd> follow</span>
+        <span><kbd>T</kbd> title</span>
+        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> calm / normal / wild</span>
+        <span><kbd>B</kbd><kbd>S</kbd><kbd>R</kbd> level</span>
+        <span><kbd>E</kbd> explain selection</span>
+        <span><kbd>C</kbd> clear markup</span>
+        <span><kbd>D</kbd> re-drop</span>
+        <span><kbd>?</kbd>debug IK overlay</span>
+      </div>
+    </details>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="loading" class="loading is-hidden" aria-live="polite">
+    <div class="loading-thread"></div>
+    <div class="loading-body"></div>
+    <p id="loading-text">fetching the paper…</p>
+  </div>
+
+  <noscript>
+    <p style="padding:2rem;font-family:monospace">Paper Crawler needs JavaScript.</p>
+  </noscript>
+
+  <script type="module" src="js/loader.js"></script>
+</body>
+</html>

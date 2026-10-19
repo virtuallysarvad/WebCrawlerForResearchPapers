@@ -1,0 +1,21 @@
+# Secrets -- never commit these
+.env
+.env.*
+!.env.example
+
+# AI explanation cache (generated, billed content)
+cache/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Optional local screenshots / test output
+screenshots/
+*.log
